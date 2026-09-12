@@ -1,6 +1,6 @@
 # Deploy London Animal Rescue to cPanel
 
-This follows [Space Rocks](https://github.com/mteinum/spacerocks): GitHub Actions builds a static artifact and publishes it with SSH/rsync.
+GitHub Actions builds a static artifact and publishes it to cPanel hosting with SSH and rsync.
 
 - Public URL: **https://app.teinum.no/london-animal-rescue/**
 - cPanel folder: `/app.teinum.no/london-animal-rescue`
@@ -8,7 +8,7 @@ This follows [Space Rocks](https://github.com/mteinum/spacerocks): GitHub Action
 - Workflow: `.github/workflows/build.yml`
 - Upload script: `scripts/deploy-cpanel.sh`
 
-The script checks the destination parent first as an absolute SSH path, then beneath the account home. With the same account as Space Rocks, the expected destination is `/home/web6178/app.teinum.no/london-animal-rescue`. The parent must already exist and its canonical path is validated. Only the final application directory is created. Traversal, shell characters and paths without the `/london-animal-rescue` suffix are rejected.
+The script checks the destination parent first as an absolute SSH path, then beneath the account home. The deployment destination is `/home/web6178/app.teinum.no/london-animal-rescue`. The parent must already exist and its canonical path is validated. Only the final application directory is created. Traversal, shell characters and paths without the `/london-animal-rescue` suffix are rejected.
 
 ## Repository settings
 

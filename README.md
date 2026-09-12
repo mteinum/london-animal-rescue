@@ -172,7 +172,7 @@ Serve `dist/` at `/london-animal-rescue/` with the trailing slash. Shares use qu
 
 ## Deployment
 
-The GitHub Actions **Build** workflow tests and builds every pull request and push to `main`. Successful main builds deploy to **https://app.teinum.no/london-animal-rescue/** using the same cPanel SSH/rsync approach as Space Rocks. Builds use the committed incident and map snapshots. Apache configuration enables compression for the large JSON/GeoJSON assets.
+The GitHub Actions **Build** workflow tests and builds every pull request and push to `main`. Successful main builds deploy to **https://app.teinum.no/london-animal-rescue/** using SSH and rsync to upload the static site to cPanel hosting. Builds use the committed incident and map snapshots. Apache configuration enables compression for the large JSON/GeoJSON assets.
 
 See [docs/deployment.md](docs/deployment.md) for repository settings, host verification, publication behaviour and troubleshooting.
 
