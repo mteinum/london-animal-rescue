@@ -15,6 +15,8 @@ Completed on 12 September 2026 with Node 22.22, strict TypeScript, Vite 7.3.6, M
 - `npm audit`: zero reported advisories after installing patched dependency versions/overrides.
 - Desktop/mobile screenshots were inspected for map/Thames alignment, readability and layout. No horizontal document overflow was detected at the tested mobile width. See [desktop.png](desktop.png) and [mobile.png](mobile.png).
 
+Street-label update: desktop and mobile Chromium were checked at overview and closer zooms. After waiting for the map to settle, screenshots confirmed road-aligned labels including Waterloo Bridge, Strand, Drury Lane, Bankside and Union Street. No page errors, console errors or failed requests were observed in these checks. See [streets-desktop.png](streets-desktop.png) and [streets-mobile.png](streets-mobile.png).
+
 ## Practical limits
 
 - Browser checks used Chromium, including software WebGL; Safari/Firefox, real phones and assistive-technology user testing were not performed.

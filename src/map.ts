@@ -1,5 +1,6 @@
 import * as maplibregl from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import streetFontUrl from '@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff2?url';
 maplibregl.setWorkerUrl(workerUrl);
 import { type GeoJSONSource, type Map as LibreMap } from 'maplibre-gl';
 import type { FeatureCollection, Point } from 'geojson';
@@ -57,6 +58,7 @@ export async function createMap(
       container,
       style: {
         version: 8,
+        'font-faces': { 'Rescue Street': streetFontUrl },
         sources: {},
         layers: [{ id: 'paper', type: 'background', paint: { 'background-color': '#ece8d9' } }],
       },
@@ -91,6 +93,12 @@ export async function createMap(
       onError('Some map assets could not load. The full incident list remains available.');
   };
   map.on('error', fail);
+  map.on('movestart', () => {
+    container.dataset.ready = 'false';
+  });
+  map.on('idle', () => {
+    if (loaded && !destroyed) container.dataset.ready = 'true';
+  });
   map
     .getCanvas()
     .setAttribute(
@@ -253,6 +261,55 @@ export async function createMap(
         'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.3, 14, 3, 17, 12],
       },
     });
+    // Use the recorded OSM names on their actual road lines. Smaller streets
+    // appear only at closer zooms; symbol collision handling keeps names apart.
+    for (const major of [true, false]) {
+      map.addLayer({
+        id: major ? 'major-street-labels' : 'local-street-labels',
+        source: 'base',
+        type: 'symbol',
+        minzoom: major ? 12 : 14,
+        filter: [
+          'all',
+          ['==', ['get', 'kind'], 'road'],
+          ['==', ['geometry-type'], 'LineString'],
+          ['!=', ['get', 'name'], ''],
+          [
+            'match',
+            ['get', 'road'],
+            ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'],
+            major,
+            !major,
+          ],
+        ],
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': major ? 350 : 250,
+          'text-field': ['get', 'name'],
+          'text-font': ['Rescue Street'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12,
+            major ? 11 : 10,
+            17,
+            major ? 15 : 13,
+          ],
+          'text-padding': 5,
+          'text-max-angle': 30,
+          'text-rotation-alignment': 'map',
+          'text-pitch-alignment': 'viewport',
+          'text-keep-upright': true,
+        },
+        paint: {
+          'text-color': '#40545b',
+          'text-halo-color': '#fff9e9',
+          'text-halo-width': 1.5,
+          'text-halo-blur': 0.4,
+        },
+      });
+    }
     map.addLayer({
       id: 'place-labels',
       source: 'labels',
@@ -373,7 +430,7 @@ export async function createMap(
             type: 'fill',
             paint: { 'fill-color': '#d8cdb7', 'fill-outline-color': '#c2b39a' },
           },
-          'place-labels',
+          'major-street-labels',
         );
         map.addLayer(
           {
@@ -388,7 +445,7 @@ export async function createMap(
               'fill-extrusion-opacity': 0.8,
             },
           },
-          'place-labels',
+          'major-street-labels',
         );
       } catch {
         if (!signal.aborted)

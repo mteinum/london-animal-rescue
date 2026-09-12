@@ -31,6 +31,7 @@ Preview defaults to http://127.0.0.1:4173. `dist/` is a static site. `.npmrc` us
 ## What works
 
 - Geographically accurate pitched London map with local OSM water, roads, parks, place labels and optional central London building extrusions.
+- Street names follow the recorded OSM road lines: major roads from zoom 12 and smaller streets from zoom 14, with collision handling and a locally bundled font.
 - Animal illustrations, clustered callouts, a selected rounded grid area, and a paginated cluster/list alternative.
 - Description, ID and place search; multiple animal categories; inclusive date endpoints; borough; optional recorded evening/overnight hours (18:00–05:59).
 - OR within the animal selection; AND between the other filter groups. Counts derive from the snapshot. Surprise chooses uniformly from the current filter matches.
@@ -133,6 +134,8 @@ The query requests main roads, water and parks across the bounding box 51.28–5
 Buildings load only at zoom ≥12.5 and extrude from zoom 13, using recorded `height` or an explicitly estimated `building:levels × 3 m`; buildings without height information remain flat. No invented landmark coordinates or miniature-city distortions. Three.js adds no useful capability here and is not included.
 
 The uncompressed local map base is approximately 30 MB; buildings add approximately 11 MB only when requested. Use HTTP Brotli/gzip compression when hosting static files. This bounded approach trades initial download weight for no tile API, account, usage-policy dependency or third-party runtime requests. Map rendering remains in workers; records and the list load independently. A vector-tile/PMTiles conversion is a reasonable future optimisation. Preserve attribution and ODbL obligations if changing map providers.
+
+Street labels reuse the `name` and road classification already present in the bundled OSM data. They follow line geometry and appear progressively as you zoom; unnamed roads and pedestrian-area polygons are not labelled as streets. Smaller-street coverage is limited to the central London extract. MapLibre renders the labels with the bundled DM Sans font through its `font-faces` support, with no external glyph service. These are present-day map labels, not inferred incident addresses or historical street names.
 
 ## Licensing and assets
 
