@@ -251,7 +251,19 @@ describe('shareable case navigation', () => {
 describe('bundled source audit', () => {
   it('matches original local source classifications for every incident and computes audited totals', () => {
     const source = normalize(parseCSV(readFileSync('public/data/source.csv', 'utf8'))).records;
-    expect(snapshot.records).toEqual(source);
+    // Projection arithmetic can differ in its last bits between macOS and Linux.
+    // Keep source/grid fields exact; 10 decimal places is well below a millimetre.
+    expect(snapshot.records).toEqual(
+      source.map((r) => ({
+        ...r,
+        location: r.location
+          ? {
+              ...r.location,
+              coordinates: r.location.coordinates.map((value) => expect.closeTo(value, 10)),
+            }
+          : null,
+      })),
+    );
     expect(snapshot.metadata.normalizationVersion).toBe(2);
     expect(snapshot.metadata.total).toBe(source.length);
     for (const d of dimensions)
