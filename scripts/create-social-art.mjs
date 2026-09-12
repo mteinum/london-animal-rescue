@@ -1,3 +1,5 @@
+// Legacy flat social cards only. Current v2 painterly illustrations are committed
+// separately; see public/social/README.md and prompts.md for their generation.
 // Original HTML/CSS composition; reuse the project's CC0 SVG art and local OFL fonts.
 // PNGs are committed: deployment builds never need a browser or graphics service.
 import { readFile, mkdir } from 'node:fs/promises';
