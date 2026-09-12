@@ -1,0 +1,12 @@
+{
+  "comparedPairs": 6398,
+  "maxMetres": 3.0482153549787077,
+  "medianMetres": 1.91366615705639,
+  "eastingRemainders": {
+    "50": 14046
+  },
+  "northingRemainders": {
+    "50": 14046
+  },
+  "note": "Approximate horizontal error in metres against supplied latitude/longitude. CRS is inferred from source column names and paired values; not explicitly documented on animal dataset page."
+}

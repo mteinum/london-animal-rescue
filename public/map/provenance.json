@@ -1,0 +1,20 @@
+{
+  "source": "https://overpass-api.de/api/interpreter",
+  "osmTimestamp": "2026-09-12T09:58:04Z",
+  "retrieved": "2026-09-12T10:00:13.117215+00:00",
+  "license": "ODbL 1.0",
+  "attribution": "\u00a9 OpenStreetMap contributors",
+  "bounds": [
+    -0.53,
+    51.28,
+    0.34,
+    51.71
+  ],
+  "buildingsBounds": [
+    -0.17,
+    51.49,
+    -0.07,
+    51.53
+  ],
+  "note": "Roads, water, parks and places across London; local roads and buildings in central London only. Extrusions use OSM height or building:levels \u00d7 3 m, an explicit estimate; unknown heights are flat. Coordinates rounded to 5 decimals. Current cartography is not historical."
+}

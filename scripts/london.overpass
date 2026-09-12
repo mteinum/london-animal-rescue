@@ -1,0 +1,11 @@
+[out:json][timeout:180];
+(
+way[highway~"^(motorway|trunk|primary|secondary|tertiary)$"](51.28,-0.53,51.71,0.34);
+way[highway~"^(residential|unclassified|pedestrian)$"](51.475,-0.21,51.55,-0.035);
+nwr[natural=water](51.28,-0.53,51.71,0.34);
+way[waterway=riverbank](51.28,-0.53,51.71,0.34);
+nwr[leisure=park](51.28,-0.53,51.71,0.34);
+way[building](51.49,-0.17,51.53,-0.07);
+node[place~"^(suburb|town|city)$"](51.28,-0.53,51.71,0.34);
+nwr[tourism=attraction][name](51.49,-0.17,51.53,-0.07);
+);out geom;

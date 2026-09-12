@@ -1,0 +1,23 @@
+import { writeFile, mkdir } from 'node:fs/promises';
+await mkdir('public/art', { recursive: true });
+const shapes = {
+  cat: `<path d="M30 46 24 12 48 28Q64 20 80 28L102 11 98 49" fill="#747e80"/><path d="m31 24 4 20 11-11m47-9-5 20-10-11" fill="#dba9a0"/><ellipse cx="64" cy="66" rx="40" ry="37" fill="#929997"/><path d="M44 56Q64 72 85 54L91 84Q65 114 37 85Z" fill="#f5efe0"/><path d="m49 31 6 19m9-21v18m15-15-6 17M26 57l13 6m-13 8 12 3m63-17-13 6m13 8-12 3" stroke="#515e60" stroke-width="5" stroke-linecap="round"/><ellipse cx="48" cy="63" rx="9" ry="11" fill="#b6c371"/><ellipse cx="80" cy="63" rx="9" ry="11" fill="#b6c371"/><ellipse cx="49" cy="63" rx="4" ry="9" fill="#26353a"/><ellipse cx="79" cy="63" rx="4" ry="9" fill="#26353a"/><path d="m58 80 6 5 6-5" fill="#b67774"/><path d="M64 85v6m0-1q-8 7-13 0m13 0q8 7 13 0m-29-9-23-3m24 9-25 4m56-10 24-3m-24 9 25 4" fill="none" stroke="#47575b" stroke-width="1.8" stroke-linecap="round"/>`,
+  dog: `<ellipse cx="64" cy="68" rx="35" ry="42" fill="#d3a65f"/><path d="M39 28Q9 25 16 80q4 18 18-1L43 39M86 29q28-5 26 45-4 24-20 5L81 39" fill="#9e713f"/><path d="M55 32Q69 23 75 35l-1 41H53Z" fill="#e4c28b"/><ellipse cx="49" cy="62" rx="5" ry="7" fill="#23353b"/><ellipse cx="81" cy="62" rx="5" ry="7" fill="#23353b"/><ellipse cx="64" cy="85" rx="22" ry="18" fill="#efd9b2"/><path d="M54 78q10-8 20 0-1 12-10 12-10-2-10-12" fill="#283b42"/><path d="M55 98q10 8 20-1v12q-10 14-20-1Z" fill="#c97f78"/><path d="M64 101v11" stroke="#a85757" stroke-width="2"/>`,
+  bird: `<path d="M30 101Q18 57 51 48q-4-29 20-31 26 0 26 27l-11 19q15 26 5 43Z" fill="#748f9c"/><path d="M59 50q-19 27-4 54H33q-19-47 22-54" fill="#b4c4c7"/><path d="M48 68Q100 57 85 99q-14 9-38-6" fill="#526b80"/><path d="m61 80 19 1m-21 8 17 1" stroke="#9bb1bb" stroke-width="3"/><path d="m95 37 20 7-21 7" fill="#d3a85d"/><circle cx="79" cy="34" r="6" fill="#253d47"/><circle cx="81" cy="32" r="2" fill="#fff7e4"/><path d="m52 105-3 11m23-11 3 11m-33 0h14m13 0h14" stroke="#aa7549" stroke-width="3"/>`,
+  fox: `<path d="m25 53-5-39 33 20q12-5 25 0l30-20-4 42-40 54Z" fill="#cc6d39"/><path d="m30 39-4-17 17 14m42 1 17-15-4 21" fill="#573f34"/><path d="M26 63q15 0 38 24 22-24 39-24-8 31-39 47-30-15-38-47" fill="#f6e9ce"/><path d="M47 60q5-5 10 0m15 0q5-5 10 0" stroke="#302e2d" stroke-width="4" fill="none"/><path d="m55 87 9 13 9-13q-9-5-18 0" fill="#2d393b"/>`,
+  paw: `<ellipse cx="40" cy="44" rx="10" ry="15" transform="rotate(-25 40 44)" fill="#294753"/><ellipse cx="61" cy="32" rx="10" ry="15" fill="#294753"/><ellipse cx="83" cy="39" rx="10" ry="15" transform="rotate(20 83 39)" fill="#294753"/><ellipse cx="99" cy="59" rx="9" ry="13" transform="rotate(35 99 59)" fill="#294753"/><path d="M42 74q20-39 41-5 27 35-6 32-13-9-26 0-33 0-9-27Z" fill="#294753"/>`,
+};
+for (const [kind, shape] of Object.entries(shapes)) {
+  await writeFile(
+    `public/art/${kind}.svg`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="61" fill="#e8e2cf"/>${shape}</svg>`,
+  );
+  await writeFile(
+    `public/art/${kind}-card.svg`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480"><defs><pattern id="grain" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#2f5649" opacity=".08"/></pattern></defs><rect width="640" height="480" fill="#dfe5d7"/><circle cx="320" cy="220" r="155" fill="#f7f0dd"/><path d="M-10 370q180-100 300 26t370-40v140H0" fill="#b7c6a6"/><path d="M-20 280Q90 173 80-10m-8 147L4 65m67 96 94-89M650 290Q535 168 575-20m-8 177 84-110m-85 89-80-72" stroke="#607d65" stroke-width="11" fill="none"/><g fill="#8ea782"><ellipse cx="45" cy="76" rx="22" ry="45" transform="rotate(-43 45 76)"/><ellipse cx="127" cy="112" rx="23" ry="49" transform="rotate(48 127 112)"/><ellipse cx="35" cy="209" rx="23" ry="49" transform="rotate(-45 35 209)"/><ellipse cx="578" cy="80" rx="24" ry="52" transform="rotate(35 578 80)"/><ellipse cx="535" cy="159" rx="24" ry="50" transform="rotate(-47 535 159)"/><ellipse cx="618" cy="214" rx="24" ry="50" transform="rotate(40 618 214)"/></g><g transform="translate(174 87) scale(2.3)">${shape}</g><path d="M0 426q110-44 198-11m257 12q110-29 185-5" stroke="#81966d" stroke-width="2" fill="none"/><rect width="640" height="480" fill="url(#grain)"/></svg>`,
+  );
+}
+await writeFile(
+  'public/art/helmet.svg',
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 110"><path d="M22 77Q19 35 46 27q4-21 18-21t20 21q29 11 24 50 26 13 3 23-49 15-95 0-20-10 6-23Z" fill="none" stroke="#fff7e6" stroke-width="5"/><g transform="translate(28 25) scale(.58)" fill="#fff7e6">${shapes.paw.replaceAll('#294753', '#fff7e6')}</g></svg>`,
+);

@@ -1,0 +1,12 @@
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/dm-sans/latin-400.css';
+import '@fontsource/dm-sans/latin-500.css';
+import '@fontsource/dm-sans/latin-600.css';
+import '@fontsource/lora/latin-600.css';
+import '@fontsource/lora/latin-700.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import './style.css';
+import { mount } from './app';
+const cleanup = mount(document.getElementById('app')!);
+if (import.meta.hot) import.meta.hot.dispose(cleanup);
