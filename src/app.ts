@@ -1,4 +1,18 @@
-import type { Incident, Snapshot } from './types';
+import type { Incident, Snapshot, View, Filters } from './types';
+import { readSnapshot } from './snapshot';
+import {
+  buildCategoryIndex,
+  reconcileChildren,
+  dimensions,
+  classificationLabel,
+  classificationValue,
+  descriptionText,
+  type CategoryIndex,
+  type Dimension,
+} from './classifications';
+import { situationControlsHTML, syncSituationControls, removeFilter } from './situation-controls';
+import { caseFilesHTML } from './case-files-view';
+import './case-files.css';
 import { emptyFilters, matches } from './filters';
 import { Timeline } from './timeline';
 import { civilISO, displayDate } from './dates';
@@ -20,7 +34,11 @@ export function mount(root: HTMLElement): () => void {
   let filters = emptyFilters();
   let saved: string[] = [];
   let storage: Store | undefined;
-  let view: 'explore' | 'patterns' | 'notebook' = 'explore';
+  let view: View = 'explore';
+  let caseAnimal = '';
+  let caseSearch = '';
+  let index: CategoryIndex;
+  let restoring = true;
   let listOpen = false;
   let clusterIds: Set<string> | null = null;
   let page = 0;
@@ -36,7 +54,7 @@ export function mount(root: HTMLElement): () => void {
   root.classList.add('lar');
   root.innerHTML = `
  <a href="#desk-main" class="skip-link">Skip to explorer</a>
- <header class="masthead"><a href="${asset('')}" class="brand" aria-label="London Animal Rescue home"><img src="${asset('art/helmet.svg')}" alt="" width="64" height="60"><span><strong>LONDON ANIMAL RESCUE</strong><span class="tagline">The dispatch desk</span></span></a><nav aria-label="Main navigation"><button class="active" data-view="explore" aria-current="page">Explore</button><button data-view="patterns">Patterns</button><button data-view="notebook">Notebook <span id="notebook-count">0</span></button></nav><div class="header-note"><span class="status-dot"></span> THE HISTORICAL COLLECTION<span>Independent explorer · not live dispatch</span></div></header>
+ <header class="masthead"><a href="${asset('')}" class="brand" aria-label="London Animal Rescue home"><img src="${asset('art/helmet.svg')}" alt="" width="64" height="60"><span><strong>LONDON ANIMAL RESCUE</strong><span class="tagline">The dispatch desk</span></span></a><nav aria-label="Main navigation"><button class="active" data-view="explore" aria-current="page">Explore</button><button data-view="cases">Case files</button><button data-view="patterns">Patterns</button><button data-view="notebook">Notebook <span id="notebook-count">0</span></button></nav><div class="header-note"><span class="status-dot"></span> THE HISTORICAL COLLECTION<span>Independent explorer · not live dispatch</span></div></header>
  <main id="desk-main" class="desk" tabindex="-1">
  <aside class="filters paper" aria-label="Incident filters"><div class="filter-top"><h1>On the lookout</h1><button id="close-filters" class="icon-button mobile-only" aria-label="Close filters">${icon('close')}</button></div><p class="intro">Search, filter and explore animal<br class="desktop-only"> callouts across London.</p>
  <label class="search-box">${icon('search')}<input id="search" type="search" placeholder="Search incident notes…" aria-label="Search descriptions, identifiers and places" maxlength="300"></label>
@@ -44,9 +62,10 @@ export function mount(root: HTMLElement): () => void {
  <fieldset class="date-fields"><legend>DATE RANGE</legend><label>From<input id="from" type="date"></label><label>To<input id="to" type="date"></label></fieldset>
  <label class="field-label" for="borough">BOROUGH</label><select id="borough"><option value="">All boroughs</option></select>
  <label class="check-row overnight"><input id="overnight" type="checkbox"><span>Evening & overnight<small>Recorded hours: 18:00–05:59</small></span></label>
+ ${situationControlsHTML()}
  <div class="filter-count"><strong id="matching">Opening records…</strong><button id="clear" class="text-button">Clear all</button></div>
  <button id="surprise" class="surprise" disabled>${icon('dice')} Surprise me</button>
- <p class="filter-semantics">Animals match any selected category.<br>Other filters all apply together.</p>
+ <p class="filter-semantics">Any selected value within a group.<br>All filter groups apply together.</p>
  <div class="sidebar-foot">${icon('book')}<div><strong>A city full of stories.</strong><p>Explore the records. Keep the ones<br>that catch your eye.</p></div></div>
  <button id="about" class="text-button source-link">About the data & credits ↗</button>
  <address class="contact-info"><strong>Morten Teinum</strong><a href="mailto:morten@teinum.no">morten@teinum.no</a></address>
@@ -69,9 +88,11 @@ export function mount(root: HTMLElement): () => void {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => ($('#toast').hidden = true), 5500);
   }
-  function saveURL() {
+  function saveURL(replace = false) {
+    if (restoring) return;
     try {
-      history.replaceState(null, '', encodeState(location.href, filters, selected?.id));
+      const url = encodeState(location.href, filters, selected?.id, { view, caseAnimal });
+      if (url !== location.href) history[replace ? 'replaceState' : 'pushState'](null, '', url);
     } catch {
       /* embedding host may disallow history */
     }
@@ -91,9 +112,10 @@ export function mount(root: HTMLElement): () => void {
     ]
       .map(
         ([c, label]) =>
-          `<button class="animal-option ${c ? (filters.animals.includes(c) ? 'chosen' : '') : !filters.animals.length ? 'chosen' : ''}" data-animal="${e(c)}" aria-pressed="${c ? filters.animals.includes(c) : !filters.animals.length}"><img src="${asset(`art/${animalArt(c)}.svg`)}" alt=""><span>${label}</span>${c ? `<small>${count(records.filter((r) => r.category === c).length)}</small>` : ''}</button>`,
+          `<button class="animal-option ${c ? (filters.animals.includes(c) ? 'chosen' : '') : !filters.animals.length ? 'chosen' : ''}" data-animal="${e(c)}" aria-pressed="${c ? filters.animals.includes(c) : !filters.animals.length}"><img src="${asset(`art/${animalArt(c)}.svg`)}" alt=""><span>${label}</span>${c ? `<small>${count(index.animals.get(c) ?? 0)}</small>` : ''}</button>`,
       )
       .join('');
+    syncSituationControls(root, index, filters);
     $('#extra-animals').innerHTML = filters.animals
       .filter((c) => !common.includes(c))
       .map(
@@ -103,6 +125,8 @@ export function mount(root: HTMLElement): () => void {
       .join('');
   }
   function applyFilters() {
+    const removed = reconcileChildren(filters, index);
+    if (view === 'cases') caseAnimal = filters.animals.length === 1 ? filters.animals[0] : '';
     filtered = records.filter((r) => matches(r, filters));
     page = 0;
     clusterIds = null;
@@ -114,6 +138,8 @@ export function mount(root: HTMLElement): () => void {
     renderView();
     updateMap();
     saveURL();
+    if (removed.length)
+      notify(`Cleared detailed filters outside their parent categories: ${removed.join(', ')}.`);
   }
   function renderCount() {
     const mapped = filtered.filter((r) => r.location).length;
@@ -149,8 +175,15 @@ export function mount(root: HTMLElement): () => void {
         ? 'Paused · recorded clock time'
         : 'Press play to travel through time';
   }
+  function renderMapCount(visible: Incident[]) {
+    const mapped = visible.filter((r) => r.location).length;
+    $('#map-count').textContent =
+      `${count(mapped)} MAPPED CALLOUTS${timeline.active ? ' · REPLAY' : ''}`;
+  }
   function updateMap() {
-    map?.update(timeline.visible(filtered), timeline.cursor, timeline.active && timeline.recent);
+    const visible = timeline.visible(filtered);
+    renderMapCount(visible);
+    map?.update(visible, timeline.cursor, timeline.active && timeline.recent);
     map?.select(selected, false);
   }
   function renderDetail() {
@@ -161,7 +194,7 @@ export function mount(root: HTMLElement): () => void {
       return;
     }
     const conflict = !matches(r, filters);
-    const redacted = r.description.toLowerCase() === 'redacted';
+    const redacted = r.description.trim().toLowerCase() === 'redacted';
     const fields = [
       ['RECORDED', displayDate(r.date)],
       ['ANIMAL', r.animal],
@@ -170,12 +203,10 @@ export function mount(root: HTMLElement): () => void {
       ...(r.ward ? [['WARD', r.ward]] : []),
     ];
     $('#detail-body').innerHTML =
-      `<figure class="animal-portrait"><img src="${asset(`art/${animalArt(r.category)}-card.svg`)}" alt="Original ${animalArt(r.category) === 'paw' ? 'paw' : animalArt(r.category)} illustration, not the actual animal"><figcaption>ILLUSTRATION</figcaption></figure><div class="file-number">RECORD No. ${e(r.id)}</div><h2>${e(r.animal)} callout</h2><p class="detail-subtitle">${e(r.borough)} · ${displayDate(r.date, false)}</p>${conflict ? '<div class="notice conflict">This selected record is outside your current filters. It is shown separately on the map.<button id="reveal" class="text-button">Clear filters and reveal</button></div>' : ''}${timeline.active && r.clock > timeline.cursor ? '<p class="notice">Selected record is later than the replay cursor and is shown separately.</p>' : ''}<dl class="record-fields">${fields.map(([k, v]) => `<dt>${k}</dt><dd>${e(v)}</dd>`).join('')}</dl><section class="record-notes"><span class="eyebrow">ORIGINAL INCIDENT NOTES</span><p>${e(r.description || 'No description supplied.')}</p>${redacted ? '<small>This description was redacted by the source.</small>' : ''}</section><div class="location-note">${icon('pin')}<div><strong>${r.location ? 'Approximate grid area' : 'No map location available'}</strong><p>${r.location ? 'Rounded source coordinates on an observed 100 m grid. This is not an exact address.' : 'Location remains available as recorded text. No position has been invented.'}</p></div></div><details class="resources"><summary>Resources & record context</summary><dl class="record-fields">${[
+      `<figure class="animal-portrait"><img src="${asset(`art/${animalArt(r.category)}-card.svg`)}" alt="Original ${animalArt(r.category) === 'paw' ? 'paw' : animalArt(r.category)} illustration, not the actual animal"><figcaption>ILLUSTRATION</figcaption></figure><div class="file-number">RECORD No. ${e(r.id)}</div><h2>${e(r.animal)} callout</h2><p class="detail-subtitle">${e(r.borough)} · ${displayDate(r.date, false)}</p>${conflict ? '<div class="notice conflict">This selected record is outside your current filters. It is shown separately on the map.<button id="reveal" class="text-button">Clear filters and reveal</button></div>' : ''}${timeline.active && r.clock > timeline.cursor ? '<p class="notice">Selected record is later than the replay cursor and is shown separately.</p>' : ''}<dl class="record-fields">${fields.map(([k, v]) => `<dt>${k}</dt><dd>${e(v)}</dd>`).join('')}</dl><section class="record-notes"><span class="eyebrow">ORIGINAL INCIDENT NOTES</span><p>${e(descriptionText(r.description))}</p>${redacted ? '<small>This description was redacted by the source.</small>' : ''}</section><section class="record-classification"><h3>Recorded classification</h3><dl>${dimensions.map((d) => `<dt>${d.label}</dt><dd><button class="classification-link" data-shortcut="${d.key}" data-value="${e(classificationValue(r[d.field]))}" title="Filter by this recorded value">${e(classificationLabel(classificationValue(r[d.field])))}</button></dd>`).join('')}</dl><small>Official fields; not inferred from the notes.</small></section><div class="location-note">${icon('pin')}<div><strong>${r.location ? 'Approximate grid area' : 'No map location available'}</strong><p>${r.location ? 'Rounded source coordinates on an observed 100 m grid. This is not an exact address.' : 'Location remains available as recorded text. No position has been invented.'}</p></div></div><details class="resources"><summary>Resources & record context</summary><dl class="record-fields">${[
         ['PUMPS', r.pumps ?? 'Not supplied'],
         ['PUMP-HOURS', r.pumpHours ?? 'Not supplied'],
-        ['STATION', r.station || 'Not supplied'],
-        ['SERVICE', r.service || 'Not supplied'],
-        ['PROPERTY', r.property || 'Not supplied'],
+        ['STATION GROUND', r.station || 'Not supplied'],
       ]
         .map(([k, v]) => `<dt>${k}</dt><dd>${e(v)}</dd>`)
         .join(
@@ -204,7 +235,7 @@ export function mount(root: HTMLElement): () => void {
     selected = r;
     timeline.pause();
     renderTimeline();
-    view = 'explore';
+    if (user && view !== 'cases') view = 'explore';
     setNavigation();
     listOpen = false;
     renderView();
@@ -227,6 +258,19 @@ export function mount(root: HTMLElement): () => void {
     const panel = $('#view-panel');
     panel.hidden = view === 'explore' && !listOpen;
     if (panel.hidden) return;
+    if (view === 'cases') {
+      panel.innerHTML = caseFilesHTML(
+        filtered,
+        filters,
+        caseAnimal,
+        index,
+        snapshot.metadata,
+        saved,
+        page,
+        caseSearch,
+      );
+      return;
+    }
     if (view === 'patterns') {
       panel.innerHTML = patternsHTML(filtered, filters, snapshot.metadata);
       return;
@@ -246,7 +290,7 @@ export function mount(root: HTMLElement): () => void {
         .slice(page * perPage, (page + 1) * perPage)
         .map(({ id, record: r }) =>
           r
-            ? `<article class="list-record"><img src="${asset(`art/${animalArt(r.category)}.svg`)}" alt=""><div><button class="open-record" data-record="${e(id)}">${e(r.animal)} · ${e(r.borough)}</button><small>${displayDate(r.date)} · ${e(id)}${!r.location ? ' · Unmapped' : ''}</small><p>${e(r.description || 'No description supplied.')}</p></div>${view === 'notebook' ? `<button class="remove-record icon-button" data-remove="${e(id)}" aria-label="Remove ${e(id)} from notebook">×</button>` : ''}</article>`
+            ? `<article class="list-record"><img src="${asset(`art/${animalArt(r.category)}.svg`)}" alt=""><div><button class="open-record" data-record="${e(id)}">${e(r.animal)} · ${e(r.borough)}</button><small>${displayDate(r.date)} · ${e(id)}${!r.location ? ' · Unmapped' : ''}</small><p>${e(descriptionText(r.description))}</p></div>${view === 'notebook' ? `<button class="remove-record icon-button" data-remove="${e(id)}" aria-label="Remove ${e(id)} from notebook">×</button>` : ''}</article>`
             : `<article class="list-record"><div><strong>Record ${e(id)} is unavailable</strong><p>This saved identifier is not in the refreshed snapshot.</p></div><button class="remove-record" data-remove="${e(id)}">Remove</button></article>`,
         )
         .join('') ||
@@ -257,6 +301,7 @@ export function mount(root: HTMLElement): () => void {
       listOpen = false;
       setNavigation();
       renderView();
+      saveURL();
       $('#list-toggle').focus();
     });
     on('#prev-page', 'click', () => {
@@ -298,6 +343,7 @@ export function mount(root: HTMLElement): () => void {
         renderCount();
         renderTimeline();
         updateMap();
+        renderDetail();
         saveURL();
         const selection = input.selectionStart;
         renderView();
@@ -319,6 +365,7 @@ export function mount(root: HTMLElement): () => void {
           listOpen = false;
           setNavigation();
           renderView();
+          saveURL();
         } else {
           filters = emptyFilters();
           applyFilters();
@@ -334,18 +381,53 @@ export function mount(root: HTMLElement): () => void {
     });
     root.classList.toggle('analysis-open', view !== 'explore');
   }
+  function openCase(animal: string) {
+    if (animal && !index.animals.has(animal)) return;
+    view = 'cases';
+    caseAnimal = animal;
+    filters.animals = animal ? [animal] : [];
+    selected = null;
+    root.classList.remove('incident-open', 'filters-open');
+    setNavigation();
+    applyFilters();
+    $('#view-panel').scrollTop = 0;
+    $('#case-title').focus({ preventScroll: true });
+  }
+  function exploreCase() {
+    view = 'explore';
+    listOpen = false;
+    setNavigation();
+    renderView();
+    saveURL();
+    $('#list-toggle').focus();
+  }
+  function changeClassification(key: Dimension, value: string, shortcut = false) {
+    if (!index.options[key]?.includes(value)) return;
+    if (shortcut) {
+      // A record shortcut carries its recorded parent, never an inferred one.
+      if (key === 'services' && selected)
+        filters.serviceCategories = [classificationValue(selected.serviceCategory)];
+      if (key === 'properties' && selected)
+        filters.propertyCategories = [classificationValue(selected.propertyCategory)];
+      filters[key] = [value];
+    } else
+      filters[key] = filters[key].includes(value)
+        ? filters[key].filter((v) => v !== value)
+        : [...filters[key], value];
+    applyFilters();
+  }
   function showDialog() {
     $<HTMLDialogElement>('#info-dialog').showModal();
   }
   async function share() {
-    const link = encodeState(location.href, filters, selected?.id);
+    const link = encodeState(location.href, filters, selected?.id, { view, caseAnimal });
     try {
       await navigator.clipboard.writeText(link);
       if (!disposed) notify('Link copied, including your current filters.');
     } catch {
       if (disposed) return;
       $('#dialog-body').innerHTML =
-        `<h2>Share this record</h2><p>Copy the link below. Your selected incident and filters are included.</p><label>Shareable link<input id="share-link" value="${e(link)}" readonly></label>`;
+        `<h2>Share this view</h2><p>Copy the link below. Your selected incident and filters are included.</p><label>Shareable link<input id="share-link" value="${e(link)}" readonly></label>`;
       showDialog();
       $<HTMLInputElement>('#share-link').select();
     }
@@ -357,6 +439,7 @@ export function mount(root: HTMLElement): () => void {
     showDialog();
   }
   on('#open-filters', 'click', () => {
+    root.classList.remove('incident-open');
     root.classList.add('filters-open');
     $('#close-filters').focus();
   });
@@ -365,12 +448,18 @@ export function mount(root: HTMLElement): () => void {
     $('#open-filters').focus();
   });
   on('#close-incident', 'click', () => {
+    const previousId = selected?.id;
     selected = null;
     root.classList.remove('incident-open');
     renderDetail();
     map?.select(null);
     saveURL();
-    $('#list-toggle').focus();
+    const recordButton =
+      previousId &&
+      root.querySelector<HTMLButtonElement>(
+        `#view-panel [data-record="${CSS.escape(previousId)}"]`,
+      );
+    (recordButton || $('#list-toggle')).focus({ preventScroll: true });
   });
   on('#list-toggle', 'click', () => {
     view = 'explore';
@@ -380,6 +469,7 @@ export function mount(root: HTMLElement): () => void {
     root.classList.remove('incident-open');
     setNavigation();
     renderView();
+    saveURL();
   });
   on('#reset-map', 'click', () => map?.reset());
   on('#close-dialog', 'click', () => $<HTMLDialogElement>('#info-dialog').close());
@@ -400,16 +490,81 @@ export function mount(root: HTMLElement): () => void {
       if (!button || !records.length) return;
       if (button.dataset.view) {
         view = button.dataset.view as typeof view;
-        timeline.pause();
+        if (view === 'cases') {
+          openCase('');
+          return;
+        }
+        timeline.reset(filtered);
         renderTimeline();
+        updateMap();
         page = 0;
         listOpen = false;
         root.classList.remove('incident-open');
         setNavigation();
         renderView();
+        saveURL();
+      }
+      if (button.dataset.case !== undefined) {
+        openCase(button.dataset.case);
+        return;
+      }
+      if (button.hasAttribute('data-case-map')) {
+        exploreCase();
+        return;
+      }
+      if (button.hasAttribute('data-case-records')) {
+        $('#case-records-title').focus();
+        return;
+      }
+      if (button.hasAttribute('data-share-case')) {
+        void share();
+        return;
+      }
+      if (button.dataset.casePage !== undefined) {
+        page = Math.max(0, Number(button.dataset.casePage));
+        renderView();
+        $('#case-records-title').focus();
+        return;
+      }
+      if (button.hasAttribute('data-setting-details')) {
+        root.classList.add('filters-open');
+        root.querySelector<HTMLDetailsElement>('.situation-controls')!.open = true;
+        $('#find-properties').focus();
+        return;
+      }
+      if (button.dataset.bookmark) {
+        const id = button.dataset.bookmark;
+        saved = saved.includes(id) ? saved.filter((v) => v !== id) : [...saved, id];
+        persist();
+        renderView();
+        renderDetail();
+        root.querySelector<HTMLButtonElement>(`[data-bookmark="${CSS.escape(id)}"]`)?.focus();
+        return;
+      }
+      if (button.dataset.chip) {
+        const inFile = !!button.closest('#view-panel');
+        removeFilter(filters, button.dataset.chip as keyof Filters, button.dataset.value || '');
+        applyFilters();
+        $(inFile ? '#case-title' : '#clear').focus({ preventScroll: true });
+        return;
+      }
+      if (button.dataset.classification || button.dataset.shortcut) {
+        const key = (button.dataset.classification || button.dataset.shortcut) as Dimension;
+        const value = button.dataset.value!;
+        changeClassification(key, value, !!button.dataset.shortcut);
+        root
+          .querySelector<HTMLButtonElement>(
+            `[data-${button.dataset.shortcut ? 'shortcut' : 'classification'}="${key}"][data-value="${CSS.escape(value)}"]`,
+          )
+          ?.focus();
+        return;
       }
       if (button.dataset.animal !== undefined) {
         const a = button.dataset.animal;
+        if (view === 'cases') {
+          openCase(a);
+          return;
+        }
         filters.animals = !a
           ? []
           : filters.animals.includes(a)
@@ -428,19 +583,41 @@ export function mount(root: HTMLElement): () => void {
     },
     { signal },
   );
+  root.addEventListener(
+    'change',
+    (ev) => {
+      const input = ev.target as HTMLSelectElement;
+      if (input.dataset.dimension && input.value) {
+        changeClassification(input.dataset.dimension as Dimension, input.value);
+        input.focus();
+      }
+    },
+    { signal },
+  );
+  root.addEventListener(
+    'input',
+    (ev) => {
+      const input = ev.target as HTMLInputElement;
+      if (!index) return;
+      if (input.dataset.optionSearch) syncSituationControls(root, index, filters);
+      if (input.id === 'case-search') {
+        caseSearch = input.value;
+        const position = input.selectionStart;
+        renderView();
+        const next = $<HTMLInputElement>('#case-search');
+        next.focus();
+        if (position !== null) next.setSelectionRange(position, position);
+      }
+    },
+    { signal },
+  );
   async function start() {
     try {
       const res = await fetch(asset('data/incidents.json'), { signal });
       if (!res.ok) throw new Error(`Snapshot request failed (${res.status})`);
-      snapshot = (await res.json()) as Snapshot;
-      if (
-        snapshot.version !== 1 ||
-        !Array.isArray(snapshot.records) ||
-        !snapshot.records.length ||
-        !snapshot.metadata?.coverage
-      )
-        throw new Error('Snapshot is invalid');
+      snapshot = readSnapshot(await res.json());
       records = snapshot.records;
+      index = buildCategoryIndex(records);
       try {
         storage = window.localStorage;
         const n = readNotebook(storage);
@@ -470,8 +647,12 @@ export function mount(root: HTMLElement): () => void {
         location.search,
         snapshot.metadata.categories,
         snapshot.metadata.boroughs,
+        index,
       );
       filters = decoded.filters;
+      view = decoded.view;
+      caseAnimal = decoded.caseAnimal;
+      setNavigation();
       on('#search', 'input', (ev) => {
         filters.query = (ev.target as HTMLInputElement).value;
         applyFilters();
@@ -495,6 +676,11 @@ export function mount(root: HTMLElement): () => void {
       });
       on('#more-animal', 'change', (ev) => {
         const input = ev.target as HTMLSelectElement;
+        if (view === 'cases' && input.value) {
+          openCase(input.value);
+          input.value = '';
+          return;
+        }
         if (input.value && !filters.animals.includes(input.value))
           filters.animals.push(input.value);
         input.value = '';
@@ -509,6 +695,7 @@ export function mount(root: HTMLElement): () => void {
       });
       on('#about', 'click', showAbout);
       on('#play', 'click', () => {
+        if (view === 'cases' || view === 'patterns') exploreCase();
         if (timeline.playing) timeline.pause();
         else timeline.play();
         lastTick = performance.now();
@@ -516,6 +703,7 @@ export function mount(root: HTMLElement): () => void {
         updateMap();
       });
       on('#scrub', 'input', (ev) => {
+        if (view === 'cases' || view === 'patterns') exploreCase();
         timeline.scrub(Number((ev.target as HTMLInputElement).value));
         renderTimeline();
         updateMap();
@@ -547,7 +735,7 @@ export function mount(root: HTMLElement): () => void {
           notify(
             `Incident ${decoded.selected} is not in this snapshot. Browse the available records.`,
           );
-      } else {
+      } else if (view === 'explore') {
         const r = filtered.find(
           (r) =>
             r.category === 'Cat' &&
@@ -560,6 +748,9 @@ export function mount(root: HTMLElement): () => void {
         );
         if (r) select(r.id, false, false);
       }
+      restoring = false;
+      saveURL(true);
+      if (decoded.selected && selected) root.classList.add('incident-open');
       if (decoded.warnings.length) notify(decoded.warnings.join(' '));
       timer = setInterval(() => {
         const now = performance.now();
@@ -569,7 +760,9 @@ export function mount(root: HTMLElement): () => void {
         const previous = timeline.cursor;
         if (timeline.tick(elapsed)) {
           renderTimeline();
-          map?.update(timeline.visible(filtered), timeline.cursor, timeline.recent);
+          const visible = timeline.visible(filtered);
+          renderMapCount(visible);
+          map?.update(visible, timeline.cursor, timeline.recent);
           if (listOpen) renderView();
           if (timeline.follow) {
             const latest = filtered
@@ -579,7 +772,7 @@ export function mount(root: HTMLElement): () => void {
               selected = latest;
               renderDetail();
               map?.select(latest, true);
-              saveURL();
+              saveURL(true);
             }
           }
         }
@@ -614,11 +807,22 @@ export function mount(root: HTMLElement): () => void {
             location.search,
             snapshot.metadata.categories,
             snapshot.metadata.boroughs,
+            index,
           );
+          restoring = true;
           filters = state.filters;
+          view = state.view;
+          caseAnimal = state.caseAnimal;
+          listOpen = false;
+          setNavigation();
           selected = records.find((r) => r.id === state.selected) ?? null;
           applyFilters();
+          restoring = false;
+          root.classList.toggle('incident-open', !!selected);
           map?.select(selected);
+          if (state.selected && !selected)
+            notify('The selected incident is unavailable in this snapshot.');
+          else if (state.warnings.length) notify(state.warnings.join(' '));
         },
         { signal },
       );

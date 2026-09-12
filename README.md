@@ -34,7 +34,7 @@ Preview defaults to http://127.0.0.1:4173. `dist/` is a static site. `.npmrc` us
 - Street names follow the recorded OSM road lines: major roads from zoom 12 and smaller streets from zoom 14, with collision handling and a locally bundled font.
 - Animal illustrations, clustered callouts, a selected rounded grid area, and a paginated cluster/list alternative.
 - Description, ID and place search; multiple animal categories; inclusive date endpoints; borough; optional recorded evening/overnight hours (18:00–05:59).
-- OR within the animal selection; AND between the other filter groups. Counts derive from the snapshot. Surprise chooses uniformly from the current filter matches.
+- OR within each animal or classification selector; AND between filter dimensions. Counts derive from the snapshot. Surprise chooses uniformly from the current filter matches.
 - Incident files with original category and description, original identifier, recorded time, available place/resource fields, notional GBP cost estimates and precision explanations.
 - Recorded chronological replay, pause, scrub, speed, older-call fading, follow-latest and gentle appearance pulses. No routes or invented operational activity.
 - Versioned local notebook, removal, confirmed clearing, unavailable-ID handling and shareable incident/filter links with a copy fallback.
@@ -65,26 +65,28 @@ UTF-8 (including BOM) and Windows-1252 CSV decoding are supported, with quoted c
 
 The workbook has one incident sheet and 31 columns. **All 31 original source columns are retained** in the downloadable `public/data/source.csv`, including original geographic references and original place capitalisation. XLSX dates are exported as offset-free ISO civil timestamps. Source string contents and labels are not summarised. Normalised application fields are:
 
-| Source column                                                                                                                                       | Application field / interpretation                                                   |
-| --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `IncidentNumber`                                                                                                                                    | `id`, string, never a numeric counter                                                |
-| `DateTimeOfCall`                                                                                                                                    | `date`, recorded civil timestamp; `clock`, arithmetic/order scalar                   |
-| `AnimalGroupParent`                                                                                                                                 | `animal` unchanged except edge whitespace; `category` combines case variants         |
-| `FinalDescription`                                                                                                                                  | `description`, plain text, including redactions                                      |
-| `Borough`                                                                                                                                           | `borough`, case-normalised for filter matching                                       |
-| `Ward`                                                                                                                                              | `ward`, recorded ward name                                                           |
-| `PostcodeDistrict`                                                                                                                                  | `postcode`, explicitly a district, not a full postcode or sector                     |
-| `Street`                                                                                                                                            | `street`, supplied street text; no inferred address                                  |
-| `StnGroundName`                                                                                                                                     | `station`, recorded station ground                                                   |
-| `Easting_rounded`, `Northing_rounded`                                                                                                               | Rounded grid location used by the map                                                |
-| `Easting_m`, `Northing_m`, `Latitude`, `Longitude`                                                                                                  | Preserved in source CSV; paired values used for coordinate audit, not exact map pins |
-| `PumpCount`                                                                                                                                         | `pumps`, count as supplied                                                           |
-| `PumpHoursTotal`                                                                                                                                    | `pumpHours`, resource-hours, not elapsed rescue duration                             |
-| `HourlyNotionalCost(£)`                                                                                                                             | `hourlyCost`, GBP per appliance-hour                                                 |
-| `IncidentNotionalCost(£)`                                                                                                                           | `cost`, GBP notional estimate                                                        |
-| `SpecialServiceType`                                                                                                                                | `service`, source service classification                                             |
-| `PropertyType`                                                                                                                                      | `property`, recorded property context                                                |
-| `CalYear`, `FinYear`, `TypeOfIncident`, `OriginofCall`, `PropertyCategory`, `SpecialServiceTypeCategory`, `WardCode`, `BoroughCode`, `UPRN`, `USRN` | Retained unchanged in source CSV                                                     |
+| Source column                                                                                     | Application field / interpretation                                                   |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `IncidentNumber`                                                                                  | `id`, string, never a numeric counter                                                |
+| `DateTimeOfCall`                                                                                  | `date`, recorded civil timestamp; `clock`, arithmetic/order scalar                   |
+| `AnimalGroupParent`                                                                               | `animal` unchanged except edge whitespace; `category` combines case variants         |
+| `FinalDescription`                                                                                | `description`, plain text, including redactions                                      |
+| `Borough`                                                                                         | `borough`, case-normalised for filter matching                                       |
+| `Ward`                                                                                            | `ward`, recorded ward name                                                           |
+| `PostcodeDistrict`                                                                                | `postcode`, explicitly a district, not a full postcode or sector                     |
+| `Street`                                                                                          | `street`, supplied street text; no inferred address                                  |
+| `StnGroundName`                                                                                   | `station`, recorded station ground                                                   |
+| `Easting_rounded`, `Northing_rounded`                                                             | Rounded grid location used by the map                                                |
+| `Easting_m`, `Northing_m`, `Latitude`, `Longitude`                                                | Preserved in source CSV; paired values used for coordinate audit, not exact map pins |
+| `PumpCount`                                                                                       | `pumps`, count as supplied                                                           |
+| `PumpHoursTotal`                                                                                  | `pumpHours`, resource-hours, not elapsed rescue duration                             |
+| `HourlyNotionalCost(£)`                                                                           | `hourlyCost`, GBP per appliance-hour                                                 |
+| `IncidentNotionalCost(£)`                                                                         | `cost`, GBP notional estimate                                                        |
+| `SpecialServiceTypeCategory`                                                                      | `serviceCategory`, official parent rescue classification                             |
+| `SpecialServiceType`                                                                              | `service`, source service classification                                             |
+| `PropertyCategory`                                                                                | `propertyCategory`, official parent property classification                          |
+| `PropertyType`                                                                                    | `property`, recorded property context                                                |
+| `CalYear`, `FinYear`, `TypeOfIncident`, `OriginofCall`, `WardCode`, `BoroughCode`, `UPRN`, `USRN` | Retained unchanged in source CSV                                                     |
 
 Common animal icons are category illustrations. `Bird` is not renamed Pigeon. Pigeon and Budgie remain separate source categories, using the generic bird illustration. Foxes have their own category. All unsupported illustrations use a neutral paw, including unknown categories.
 
@@ -102,9 +104,49 @@ Only rounded coordinates are used on the incident map, even when finer values ex
 
 No timezone or DST convention is documented on the public page or in the workbook. Dates are shown as **recorded clock values**, without an invented `Z`, UTC label or Europe/London conversion. Excel serials are interpreted as civil values; the JS UTC constructors in `dates.ts` are only a timezone-independent arithmetic device. The `clock` scalar is **not an asserted UTC instant**. Ambiguous autumn hours cannot be disambiguated, and unknown spring conventions are not corrected. Equal timestamps are stably ordered by incident ID.
 
-LFB does not routinely record animal death/injury outcomes in this dataset. The app preserves descriptions and does not infer rescue success. `Redacted` is shown as source redaction.
+LFB does not routinely record animal death/injury outcomes in this dataset. The app preserves descriptions and does not infer rescue success. `Redacted`, null and empty descriptions display as unavailable text. Original strings remain in the snapshot/CSV; unavailable descriptions are not searchable notes.
 
 Costs are **notional cost estimates in GBP**. Per the source, appliance attendance time is rounded up to the next hour for Pump, Aerial and FRU appliances and multiplied by the Brigade hourly rate. These are neither invoices, exact expenditure nor amounts charged to owners. Resource-hours are not elapsed rescue duration or response time. No “most expensive animal” rankings are provided.
+
+## Situation filters and animal case files
+
+[Desktop case file](docs/case-file-desktop.png) · [Mobile directory](docs/case-files-mobile.png)
+
+**Situation & setting** contains rescue category, detailed service type, property category and detailed property type. Options come from the loaded snapshot. Search an option list, then choose a value to add or remove it; checkmarks and removable chips identify active choices. Values within one dimension use **OR**; different dimensions, animal, date, borough, search and overnight filters use **AND**. Each record is counted once. Detailed choices are restricted to the union of selected parent categories. Changing a parent clears incompatible detailed choices and announces what changed. Removing all parents makes every detailed option available again. Clear all removes every constraint, including the case-file animal.
+
+The concise situation labels are At height, Below ground, From water and Other assistance. Exact official labels remain visible in the case breakdown and incident card. Other assistance does **not** mean “trapped”. Classification shortcuts on a record apply its recorded value; a detailed shortcut also selects that record's recorded parent. These fields can differ from a reader's interpretation of the notes: `112223-11072024` describes a cat in a ditch underneath a church, but remains **Other animal assistance / Assist trapped domestic animal / Non Residential / Church/Chapel**.
+
+**Case files** opens a directory across all animal categories, carrying the non-animal filters. Folders are ordered by current matching incident count, with name search and an entire-file total for context. Opening or switching a file replaces the shared animal constraint. `Cat` and `cat` share the Cat file; original animal labels remain on records. Bird, Pigeon and Budgie stay distinct. Missing animal labels use Unspecified. These are recorded categories, not necessarily species classifications.
+
+A file shows current matches, the entire-file total, actual matching date coverage, official situation and setting breakdowns, paginated original excerpts, notebook actions and the existing incident card. **Each breakdown uses all current matching incidents as its denominator**, including an explicit Unknown / not supplied bucket when present. Percentages are rounded to one decimal, so displayed percentages may not add to exactly 100%. Zero-count official categories remain selectable to allow additional OR choices. No percentages are used to rank the risk of small animal categories.
+
+Map opens Explore with the same filters and the same MapLibre instance; Incident list remains its records alternative. Entering Case files or Patterns resets replay to all matching dates, ensuring their totals describe the full selected period. Playing or scrubbing from these views returns to Explore, where the existing replay subset applies to the map and incident list. Notebook intentionally shows all saved records regardless of filters. Monthly case tables use the same aggregation as Patterns, pool available dates across years and flag incomplete boundary years/months. They are incident counts, not counts of animals, successful rescues or seasonal rates.
+
+The snapshot keeps the existing **envelope version 1**, with additive `metadata.normalizationVersion: 2` and computed classification audit totals. This preserves the existing publication validation. Loading an older v1 snapshot deliberately fills absent parent fields with missing values; it does not infer parents from a child or description. Unsupported envelope versions are rejected. Rebuild the richer snapshot entirely from the bundled original download:
+
+```sh
+npm run data:normalize
+```
+
+No upstream download is needed. The audited snapshot has 14,046 incidents: 6,537 Other animal assistance, 5,645 height, 1,294 below ground and 570 water; Cat/cat has 7,435 incidents. Those are regression checks for this snapshot, not application constants. All four classification distributions are recorded in `public/data/provenance.json` and verified against `public/data/source.csv` in tests.
+
+No free-text or AI classification is performed. Future derived tags must live in a separate field with the derivation rule/version, evidence and provenance, and be labelled as derived. They must not overwrite official classifications or original notes; substring matches such as “trapped” cannot resolve negations like “NOT PHYSICALLY TRAPPED”.
+
+### Shareable view state
+
+Shares preserve the current base path and unrelated URL parameters. Browser Back/Forward restores the view, filters and selected incident. The supported query parameters are:
+
+| Parameter                               | Meaning                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `view`                                  | `explore` (default), `cases`, `patterns` or `notebook`                   |
+| `case`                                  | Animal category for an open case file; used with `view=cases`            |
+| `animal`                                | Repeatable animal categories; an open case replaces them with its animal |
+| `serviceCategory`, `service`            | Repeatable official rescue parent and detailed service labels            |
+| `propertyCategory`, `property`          | Repeatable official property parent and detailed type labels             |
+| `q`, `from`, `to`, `borough`, `night=1` | Existing text, inclusive dates, borough and overnight filters            |
+| `incident`                              | Selected record identifier; original incident-only links remain valid    |
+
+For example, `?view=cases&case=Cat&serviceCategory=Other+animal+assistance` opens the filtered Cat file. `?incident=112223-11072024` still opens its original dispatch card. Unknown values are ignored with a notice; unknown case animals show the directory. A selected incident outside current filters remains explicitly marked as a separate selection, never silently substituted into the match totals. Missing classifications use the reserved filter/URL token `~unknown`, displayed as Unknown / not supplied, not a fabricated official label. Clipboard denial provides a selectable share-link fallback.
 
 ## Replay semantics
 
@@ -155,6 +197,9 @@ The application code and original documentation are licensed under the [MIT Lice
 | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `scripts/refresh-data.ts`, `scripts/normalize.ts` | Download, file format detection, source parsing, validation, normalisation, provenance |
 | `src/types.ts`, `src/dates.ts`, `src/geo.ts`      | Data contracts, recorded civil time, grid conversion/area                              |
+| `src/classifications.ts`, `src/snapshot.ts`       | Category indexes, parent/child reconciliation, legacy snapshot loading                 |
+| `src/case-files.ts`, `src/case-files-view.ts`     | Pure case aggregates and folder/record presentation                                    |
+| `src/situation-controls.ts`, `src/case-files.css` | Searchable selectors, removable chips and case-file styling                            |
 | `src/filters.ts`                                  | Pure combined filter predicate                                                         |
 | `src/map.ts`                                      | Lazy MapLibre setup, geographic layers, clustering, selection, pulses                  |
 | `src/timeline.ts`                                 | Pure replay state and elapsed-time advancement                                         |

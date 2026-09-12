@@ -195,6 +195,8 @@ describe('URL state', () => {
     expect(decodeState(new URL(url).search, ['Cat', 'Dog'], ['Camden'])).toEqual({
       filters: f,
       selected: 'test-1',
+      view: 'explore',
+      caseAnimal: '',
       warnings: [],
     });
   });
@@ -207,6 +209,6 @@ describe('URL state', () => {
     expect(d.selected).toBe('');
     expect(d.filters.animals).toEqual([]);
     expect(d.filters.from).toBe('2020-01-01');
-    expect(d.warnings.length).toBe(2);
+    expect(d.warnings.length).toBe(3);
   });
 });

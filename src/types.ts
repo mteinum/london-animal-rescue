@@ -20,7 +20,9 @@ export interface Incident {
   pumpHours: number | null;
   hourlyCost: number | null;
   cost: number | null;
+  serviceCategory: string;
   service: string;
+  propertyCategory: string;
   property: string;
 }
 export interface Filters {
@@ -30,8 +32,19 @@ export interface Filters {
   to: string;
   borough: string;
   overnight: boolean;
+  serviceCategories: string[];
+  services: string[];
+  propertyCategories: string[];
+  properties: string[];
+}
+export type View = 'explore' | 'patterns' | 'notebook' | 'cases';
+export interface Navigation {
+  view: View;
+  caseAnimal: string;
 }
 export interface Metadata {
+  normalizationVersion?: number;
+  classifications?: Record<string, Record<string, number>>;
   retrieved: string;
   source: string;
   download: string;

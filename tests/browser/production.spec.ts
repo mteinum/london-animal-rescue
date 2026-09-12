@@ -77,3 +77,31 @@ test('selecting a rendered geographic cluster opens its actual member list', asy
   await page.locator('.open-record').first().click();
   await expect(page.locator('#detail-body')).toContainText('ORIGINAL INCIDENT NOTES');
 });
+
+test('production case-file links preserve classifications and base path through history', async ({
+  page,
+}) => {
+  test.skip(!process.env.PRODUCTION_URL, 'Requires the production preview URL');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('response', (r) => {
+    if (r.status() >= 400) errors.push(r.url());
+  });
+  await page.goto(
+    process.env.PRODUCTION_URL! +
+      '?view=cases&case=cat&property=Church%2FChapel&incident=112223-11072024',
+  );
+  await expect(page.locator('#case-title')).toHaveText('Cat');
+  await expect(page.locator('#map')).toHaveAttribute('data-ready', 'true', { timeout: 60000 });
+  await expect(page.locator('.record-classification')).toContainText('Other animal assistance');
+  await expect(page.locator('.case-scope')).toContainText('Church/Chapel');
+  await page.getByRole('button', { name: 'Necessary only', exact: true }).click();
+  await page.locator('#close-incident').click();
+  await page.locator('[data-case-map]').click();
+  await expect(page.locator('#view-panel')).toBeHidden();
+  expect(new URL(page.url()).pathname).toBe(new URL(process.env.PRODUCTION_URL!).pathname);
+  await page.goBack();
+  await expect(page.locator('#case-title')).toHaveText('Cat');
+  await expect(page.locator('.case-scope')).toContainText('Church/Chapel');
+  expect(errors).toEqual([]);
+});

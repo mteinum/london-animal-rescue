@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
 import { normalize, parseCSV } from './normalize';
+import { dimensions, classificationValue } from '../src/classifications';
 const source = 'https://data.london.gov.uk/dataset/animal-rescue-incidents-attended-by-lfb-2ogkn';
 await mkdir('data/source', { recursive: true });
 await mkdir('public/data', { recursive: true });
@@ -74,6 +75,17 @@ if (result.records.length < 1000) throw new Error('Unexpectedly small dataset; s
 const metadata = {
   ...provenance,
   sourceFormat,
+  normalizationVersion: 2,
+  classifications: Object.fromEntries(
+    dimensions.map((d) => {
+      const totals: Record<string, number> = {};
+      for (const r of result.records) {
+        const value = classificationValue(r[d.field]);
+        totals[value] = (totals[value] ?? 0) + 1;
+      }
+      return [d.field, totals];
+    }),
+  ),
   sha256: createHash('sha256').update(bytes).digest('hex'),
   total: result.records.length,
   mapped: result.records.filter((r) => r.location).length,

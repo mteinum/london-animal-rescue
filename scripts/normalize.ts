@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { animalGroup } from '../src/classifications';
 import { parseDate } from '../src/dates';
 import { classifyLocation } from '../src/geo';
 import type { Incident } from '../src/types';
@@ -62,7 +63,7 @@ export function normalize(rows: Record<string, string>[]) {
       id,
       ...dt,
       animal,
-      category: title(animal),
+      category: animalGroup(animal),
       description: clean(r.FinalDescription),
       borough: title(clean(r.Borough)) || 'Unspecified',
       ward: clean(r.Ward),
@@ -74,7 +75,9 @@ export function normalize(rows: Record<string, string>[]) {
       pumpHours: number(r.PumpHoursTotal),
       hourlyCost: number(r['HourlyNotionalCost(£)']),
       cost: number(r['IncidentNotionalCost(£)']),
+      serviceCategory: clean(r.SpecialServiceTypeCategory),
       service: clean(r.SpecialServiceType),
+      propertyCategory: clean(r.PropertyCategory),
       property: clean(r.PropertyType),
     });
   });
