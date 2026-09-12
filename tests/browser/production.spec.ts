@@ -22,7 +22,7 @@ test('production subdirectory has local map, worker, assets and deep links', asy
   await page.getByRole('button', { name: 'Incident list', exact: true }).click();
   await page.getByLabel('Search incident list').fill('tree');
   await expect(page.locator('.open-record')).toHaveCount(12);
-  expect(new URL(page.url()).pathname).toBe('/animal-rescue/');
+  expect(new URL(page.url()).pathname).toBe(new URL(process.env.PRODUCTION_URL!).pathname);
   expect(errors).toEqual([]);
   expect(external).toEqual([]);
 });

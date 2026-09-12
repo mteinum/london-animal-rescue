@@ -23,4 +23,10 @@ Completed on 12 September 2026 with Node 22.22, strict TypeScript, Vite 7.3.6, M
 - Map failure and WebGL denial were intentionally injected; related errors are expected in those negative scenarios. Successful interaction scenarios had no page errors; the targeted asset check also monitored failed requests and console errors. Software renderer performance warnings are not application failures.
 - The map base is intentionally bounded and relatively large (about 30 MB uncompressed plus 11 MB optional buildings). Slow-network and low-memory physical-device performance remain unmeasured. HTTP compression is recommended for hosting.
 - Exact incident addresses, timezone/DST offsets and outcomes cannot be recovered from undocumented or redacted source fields. The interface and README retain these uncertainties.
-- No deployment, publishing, accounts or external writes were performed.
+- The original application validation preceded publication. Deployment checks are recorded below separately.
+
+## Deployment checks
+
+- `bash -n scripts/deploy-cpanel.sh` and the production build with `BASE_PATH=/london-animal-rescue/` passed.
+- `npm test`: all 20 tests passed, including three deployment tests for input validation, incorrect asset base rejection, encrypted-key loading, assets-before-index upload order and cleanup. Remote SSH/rsync calls are stubbed; the tests do not publish anything. The agent test requires permission to create a local SSH-agent socket.
+- Desktop and mobile production-path browser checks passed at `http://127.0.0.1:4174/london-animal-rescue/`, including map readiness, worker/assets, incident deep links and list search, with no failed requests or page errors.

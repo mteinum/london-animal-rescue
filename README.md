@@ -20,7 +20,7 @@ npm run build
 npm run preview
 ```
 
-Preview defaults to http://127.0.0.1:4173. `dist/` is a static site. Nothing has been published or deployed. `.npmrc` uses `legacy-peer-deps` to avoid an npm 10 optional peer resolver crash with Vitest; the lockfile records the installed tree. Patched transitive dependencies are pinned through overrides.
+Preview defaults to http://127.0.0.1:4173. `dist/` is a static site. `.npmrc` uses `legacy-peer-deps` to avoid an npm 10 optional peer resolver crash with Vitest; the lockfile records the installed tree. Patched transitive dependencies are pinned through overrides.
 
 ## What works
 
@@ -166,11 +166,17 @@ With Astro view transitions, call mount again on the new element on `astro:page-
 Relative base URLs (`./`) are the default and all public data/art URLs use Vite’s base. For a known mount path:
 
 ```sh
-BASE_PATH=/animal-rescue/ npm run build
-BASE_PATH=/animal-rescue/ npm run preview
+BASE_PATH=/london-animal-rescue/ npm run build
+BASE_PATH=/london-animal-rescue/ npm run preview
 ```
 
-Serve `dist/` at `/animal-rescue/` with the trailing slash. Shares use query parameters at the same path; no SPA path rewrite is needed. The build bundles its worker correctly for this base. `BASE_PATH` is a build-time setting; rebuild when it changes. The default relative base requires the document to be served from its directory URL, not an invented nested route.
+Serve `dist/` at `/london-animal-rescue/` with the trailing slash. Shares use query parameters at the same path; no SPA path rewrite is needed. The build bundles its worker correctly for this base. `BASE_PATH` is a build-time setting; rebuild when it changes. The default relative base requires the document to be served from its directory URL, not an invented nested route.
+
+## Deployment
+
+The GitHub Actions **Build** workflow tests and builds every pull request and push to `main`. Successful main builds deploy to **https://app.teinum.no/london-animal-rescue/** using the same cPanel SSH/rsync approach as Space Rocks. Builds use the committed incident and map snapshots. Apache configuration enables compression for the large JSON/GeoJSON assets.
+
+See [docs/deployment.md](docs/deployment.md) for repository settings, host verification, publication behaviour and troubleshooting.
 
 ## Validation
 
