@@ -17,6 +17,13 @@ Completed on 12 September 2026 with Node 22.22, strict TypeScript, Vite 7.3.6, M
 
 Street-label update: desktop and mobile Chromium were checked at overview and closer zooms. After waiting for the map to settle, screenshots confirmed road-aligned labels including Waterloo Bridge, Strand, Drury Lane, Bankside and Union Street. No page errors, console errors or failed requests were observed in these checks. See [streets-desktop.png](streets-desktop.png) and [streets-mobile.png](streets-mobile.png).
 
+## Analytics update
+
+- `npm test`: 22 tests passed, including consent validation, expiry and storage failures.
+- `tests/browser/analytics.spec.ts`: eight desktop/mobile scenarios passed with Google requests stubbed. Verified no request before consent, persistent rejection/acceptance, one configured page view, URL query/fragment exclusion, withdrawal, app-scoped cookie removal, unrelated-cookie preservation, cleanup, blocked script/storage handling, keyboard focus and other-tab withdrawal.
+- Production build and strict TypeScript checking passed. Production-path browser checks passed on desktop/mobile for consent, scoped cookie configuration, map/assets and deep links; the desktop cluster-selection check also passed. The existing fixed-coordinate mobile cluster check remains intentionally skipped.
+- Desktop and mobile production consent screenshots were visually checked: [desktop](analytics-consent-desktop.png), [mobile](analytics-consent-mobile.png). Google requests were intercepted during all consent-positive browser tests; live Google Analytics report ingestion was not checked.
+
 ## Practical limits
 
 - Browser checks used Chromium, including software WebGL; Safari/Firefox, real phones and assistive-technology user testing were not performed.

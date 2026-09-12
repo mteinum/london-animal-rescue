@@ -1,0 +1,78 @@
+.lar .analytics-settings {
+  margin-top: 10px;
+  min-height: 32px;
+}
+.lar .analytics-status {
+  margin: 5px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.lar .analytics-consent {
+  position: fixed;
+  z-index: 80;
+  left: 20px;
+  bottom: 20px;
+  width: min(490px, calc(100vw - 40px));
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--red);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--navy);
+  box-shadow: 0 8px 40px #1c354535;
+}
+.lar .analytics-consent h2 {
+  padding-right: 28px;
+  font-size: 24px;
+  margin: 0 0 10px;
+}
+.lar .analytics-consent p {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 8px 0;
+}
+.lar .analytics-consent .analytics-note {
+  font-size: 11px;
+  color: var(--muted);
+}
+.lar .analytics-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.lar .analytics-actions button {
+  flex: 1;
+  min-height: 44px;
+  font-size: 12px;
+}
+.lar .analytics-allow {
+  background: var(--navy);
+  color: var(--paper);
+}
+.lar .analytics-allow:hover {
+  background: #2c5063;
+}
+.lar .analytics-close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  font-size: 24px;
+  border: 0;
+}
+@media (max-width: 760px) {
+  .lar .analytics-consent {
+    left: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+    padding: 17px;
+  }
+  .lar .analytics-consent h2 {
+    font-size: 21px;
+  }
+}

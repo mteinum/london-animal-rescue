@@ -1,4 +1,39 @@
 import { test, expect } from '@playwright/test';
+test('production analytics waits for consent and uses the deployed base path', async ({
+  page,
+  context,
+}, info) => {
+  test.skip(!process.env.PRODUCTION_URL, 'Requires the production preview URL');
+  const requests: string[] = [];
+  await context.route(/https:\/\/[^/]*(google-analytics\.com|googletagmanager\.com)\//, (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({ contentType: 'application/javascript', body: '/* Google tag stub */' });
+  });
+  await page.goto(process.env.PRODUCTION_URL! + '?incident=131792091');
+  await expect(page.locator('#map')).toHaveAttribute('data-ready', 'true', { timeout: 60000 });
+  await expect(page.getByRole('region', { name: 'Analytics preferences' })).toBeVisible();
+  expect(requests).toEqual([]);
+  await page.screenshot({ path: `docs/analytics-consent-${info.project.name}.png` });
+  await page.getByRole('button', { name: 'Allow analytics', exact: true }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0]).toContain('id=G-FC34S4J2L2');
+  const config = await page.evaluate(() => {
+    const queue = (window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer;
+    return queue
+      .map((command) => Array.from(command))
+      .find((command) => command[0] === 'config')?.[2];
+  });
+  expect(config).toMatchObject({
+    cookie_path: new URL(process.env.PRODUCTION_URL!).pathname,
+    page_location: process.env.PRODUCTION_URL,
+  });
+  const settings = page.getByRole('button', { name: 'Privacy settings', exact: true });
+  if (!(await settings.isVisible()))
+    await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  await settings.click();
+  await page.getByRole('button', { name: 'Necessary only', exact: true }).click();
+  await expect(page.locator('.analytics-status')).toHaveText('Analytics off.');
+});
 test('production subdirectory has local map, worker, assets and deep links', async ({ page }) => {
   test.skip(
     !process.env.PRODUCTION_URL,

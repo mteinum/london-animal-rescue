@@ -50,6 +50,7 @@ export function mount(root: HTMLElement): () => void {
  <div class="sidebar-foot">${icon('book')}<div><strong>A city full of stories.</strong><p>Explore the records. Keep the ones<br>that catch your eye.</p></div></div>
  <button id="about" class="text-button source-link">About the data & credits ↗</button>
  <address class="contact-info"><strong>Morten Teinum</strong><a href="mailto:morten@teinum.no">morten@teinum.no</a></address>
+ <button type="button" class="text-button analytics-settings" data-analytics-settings hidden>Privacy settings</button>
  </aside>
  <section class="map-stage" aria-label="Incident explorer"><div id="map" role="region" aria-label="Geographic map of London"></div><div class="map-toolbar"><button id="open-filters" class="paper mobile-only">${icon('filter')} Filters</button><div class="map-caption paper"><span class="status-dot"></span><span id="map-count">LONDON · HISTORICAL CALLOUTS</span></div><button id="list-toggle" class="paper">${icon('list')} Incident list</button></div>
  <button id="reset-map" class="paper map-reset">⌖ <span>Central London</span></button><div class="map-key paper"><img src="${asset('art/paw.svg')}" alt="" width="23" height="23"> Rounded locations <span>·</span> Numbers group callouts</div>

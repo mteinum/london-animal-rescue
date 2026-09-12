@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>London Animal Rescue analytics test</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { mount } from '../../src/app.ts';
+      import { mountAnalytics } from '../../src/analytics.ts';
+      import '@fontsource/dm-sans/latin-400.css';
+      import '@fontsource/lora/latin-700.css';
+      import '@fontsource/barlow-condensed/latin-700.css';
+      import 'maplibre-gl/dist/maplibre-gl.css';
+      import '../../src/style.css';
+      const root = document.querySelector('#app');
+      const cleanup = mount(root);
+      const cleanupAnalytics = mountAnalytics(root);
+      window.cleanupAnalyticsFixture = () => {
+        cleanupAnalytics();
+        cleanup();
+      };
+    </script>
+  </body>
+</html>

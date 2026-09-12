@@ -133,7 +133,7 @@ The query requests main roads, water and parks across the bounding box 51.28–5
 
 Buildings load only at zoom ≥12.5 and extrude from zoom 13, using recorded `height` or an explicitly estimated `building:levels × 3 m`; buildings without height information remain flat. No invented landmark coordinates or miniature-city distortions. Three.js adds no useful capability here and is not included.
 
-The uncompressed local map base is approximately 30 MB; buildings add approximately 11 MB only when requested. Use HTTP Brotli/gzip compression when hosting static files. This bounded approach trades initial download weight for no tile API, account, usage-policy dependency or third-party runtime requests. Map rendering remains in workers; records and the list load independently. A vector-tile/PMTiles conversion is a reasonable future optimisation. Preserve attribution and ODbL obligations if changing map providers.
+The uncompressed local map base is approximately 30 MB; buildings add approximately 11 MB only when requested. Use HTTP Brotli/gzip compression when hosting static files. This bounded approach trades initial download weight for no tile API, account, usage-policy dependency or third-party map requests. Map rendering remains in workers; records and the list load independently. A vector-tile/PMTiles conversion is a reasonable future optimisation. Preserve attribution and ODbL obligations if changing map providers.
 
 Street labels reuse the `name` and road classification already present in the bundled OSM data. They follow line geometry and appear progressively as you zoom; unnamed roads and pedestrian-area polygons are not labelled as streets. Smaller-street coverage is limited to the central London extract. MapLibre renders the labels with the bundled DM Sans font through its `font-faces` support, with no external glyph service. These are present-day map labels, not inferred incident addresses or historical street names.
 
@@ -190,6 +190,10 @@ npm run test:browser
 ```
 
 The browser tests require a Playwright Chromium installation (`npx playwright install chromium` if missing). They run desktop and mobile Chromium. See `docs/VALIDATION.md` for the checks actually performed and their practical limits. Tests use small explicitly synthetic fixtures only for edge cases; the application snapshot is entirely official data.
+
+## Optional analytics
+
+Production builds use Google Analytics measurement ID `G-FC34S4J2L2`, loaded only after visitor consent. Choose **Necessary only** or **Allow analytics**, and reopen **Privacy settings** beneath the contact details in the filters. Consent is remembered for one year; the notebook works independently. Development and embedded mounts do not install analytics. See [setup, external requests and verification](docs/analytics.md).
 
 ## Social graphics
 
