@@ -2,6 +2,10 @@
 
 A standalone historical explorer of animal-related incidents attended by the London Fire Brigade. Vite, strict TypeScript, MapLibre GL JS and plain HTML/CSS. No accounts, backend, runtime data service, paid tiles or AI. This is an independent project, not an official LFB service or live dispatch application.
 
+[![London Animal Rescue showing the London map, animal filters, timeline and a historical cat incident card](docs/desktop.png)](https://app.teinum.no/london-animal-rescue/)
+
+[Open the dispatch desk](https://app.teinum.no/london-animal-rescue/)
+
 ## Run locally
 
 Requires Node.js 22.12+ (tested with 22.22) and npm. The snapshots are included.
@@ -136,7 +140,7 @@ The uncompressed local map base is approximately 30 MB; buildings add approximat
 - **Typography:** Barlow Condensed, DM Sans and Lora from Fontsource, SIL Open Font Licence. Fonts are bundled locally. Licence notices are in `public/licenses/`.
 - **MapLibre:** BSD-3-Clause; dependency licences remain with their packages.
 
-## Architecture and future Astro mounting
+## Architecture
 
 `src/app.ts` exports `mount(root: HTMLElement): () => void`. It returns cleanup synchronously; asynchronous initialisation is abortable. Cleanup aborts fetches, removes event listeners, clears timers, disconnects resize observation and removes MapLibre/markers. Importing the mount function does not create a map or touch the DOM until called.
 
@@ -150,16 +154,6 @@ The uncompressed local map base is approximately 30 MB; buildings add approximat
 | `src/notebook.ts`, `src/url-state.ts`             | Defensive persistence and validated URL state                                          |
 | `src/patterns.ts`                                 | Filtered count tables/bars                                                             |
 | `src/ui.ts`, `src/app.ts`, `src/style.css`        | DOM helpers, interface orchestration and layout                                        |
-
-In an Astro client script, import the same font/CSS imports as `src/main.ts`, then:
-
-```ts
-import { mount } from './app';
-const cleanup = mount(document.querySelector<HTMLElement>('#rescue')!);
-document.addEventListener('astro:before-swap', cleanup, { once: true });
-```
-
-With Astro view transitions, call mount again on the new element on `astro:page-load`, registering that listener once in the host. Mount only one explorer per document: IDs, URL state and localStorage key are intentionally shared. No Astro dependency is required now.
 
 ## Subdirectory hosting
 
@@ -189,6 +183,13 @@ npm run test:browser
 ```
 
 The browser tests require a Playwright Chromium installation (`npx playwright install chromium` if missing). They run desktop and mobile Chromium. See `docs/VALIDATION.md` for the checks actually performed and their practical limits. Tests use small explicitly synthetic fixtures only for edge cases; the application snapshot is entirely official data.
+
+## Social graphics
+
+- [Link preview, 1200 × 630](public/social/london-animal-rescue.png): used by the page's Open Graph and Twitter/X card metadata. Also suitable for GitHub's repository social preview setting.
+- [Square post, 1080 × 1080](public/social/london-animal-rescue-square.png): for manual sharing.
+
+The graphics reuse the original animal illustrations and bundled fonts. Regenerate them with `npm run art:social` after installing Playwright Chromium (`npx playwright install chromium`). The source is `scripts/create-social-art.mjs`; normal builds use the committed PNGs. Metadata in `index.html` uses absolute URLs for the deployed site; update those URLs if hosting at a different address. Shared incident links use the same application-level preview because this is a static site.
 
 ## Contact
 

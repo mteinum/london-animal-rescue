@@ -14,6 +14,7 @@
     "data:normalize": "tsx scripts/refresh-data.ts --local",
     "map:refresh": "tsx scripts/refresh-map.ts",
     "data:audit": "node --import tsx scripts/audit-coordinates.ts",
+    "art:social": "node scripts/create-social-art.mjs",
     "format": "prettier --write src scripts tests *.ts *.json index.html README.md"
   },
   "dependencies": {
